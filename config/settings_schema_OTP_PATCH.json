@@ -1,0 +1,27 @@
+{
+  "name": "OTP Login",
+  "settings": [
+    {
+      "type": "header",
+      "content": "WhatsApp OTP Login"
+    },
+    {
+      "type": "paragraph",
+      "content": "Configure the WhatsApp OTP login feature. Get these values from your Vercel backend deployment."
+    },
+    {
+      "type": "text",
+      "id": "otp_backend_url",
+      "label": "Backend URL",
+      "placeholder": "https://ikkasa-otp-backend.vercel.app",
+      "info": "Your Vercel deployment URL — no trailing slash."
+    },
+    {
+      "type": "text",
+      "id": "otp_api_key",
+      "label": "API Secret Key",
+      "placeholder": "Paste your API_SECRET_KEY here",
+      "info": "Must match the API_SECRET_KEY environment variable set in your Vercel project."
+    }
+  ]
+}

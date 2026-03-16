@@ -2284,5 +2284,28 @@
         "default": "equal-width-buttons"
       }
     ]
+  },
+  {
+    "name": "OTP Login",
+    "settings": [
+      {
+        "type": "header",
+        "content": "WhatsApp OTP Login"
+      },
+      {
+        "type": "text",
+        "id": "otp_backend_url",
+        "label": "Backend URL",
+        "placeholder": "https://ikkasa-otp-backend.vercel.app",
+        "info": "Vercel URL"
+      },
+      {
+        "type": "text",
+        "id": "otp_api_key",
+        "label": "API Secret Key",
+        "placeholder": "Paste key here",
+        "info": "Matches Vercel API_SECRET_KEY"
+      }
+    ]
   }
 ]

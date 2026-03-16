@@ -1,0 +1,564 @@
+{%- comment -%}
+  snippets/otp-login.liquid
+  ──────────────────────────────────────────────────────────────────────────────
+  WhatsApp OTP Login widget for Ikkasa Dawn theme.
+  Rendered inside sections/main-login.liquid above the email form.
+
+  Configuration — set these in Shopify Admin → Online Store → Themes → Customize
+  → scroll down to "OTP Login" section in the left panel:
+    • otp_backend_url  → your Vercel deployment URL (no trailing slash)
+    • otp_api_key      → your API_SECRET_KEY from Vercel env vars
+{%- endcomment -%}
+
+{%- assign otp_api_url = settings.otp_backend_url | default: 'https://YOUR-BACKEND.vercel.app' -%}
+{%- assign otp_api_key = settings.otp_api_key | default: '' -%}
+
+<div
+  id="ikkasa-otp-root"
+  data-api-url="{{ otp_api_url }}"
+  data-api-key="{{ otp_api_key }}"
+>
+
+  <div class="ikkasa-otp__card">
+
+    {{- '<!-- WhatsApp OTP Login - Ikkasa -->' -}}
+
+    <div class="ikkasa-otp__header">
+      <span class="ikkasa-otp__icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="currentColor"/>
+          <path d="M12.004 2C6.477 2 2.003 6.474 2.003 12c0 1.772.457 3.498 1.326 5.014L2 22l5.109-1.305A9.987 9.987 0 0 0 12.004 22C17.53 22 22 17.526 22 12S17.53 2 12.004 2zm0 18.153a8.15 8.15 0 0 1-4.153-1.138l-.298-.177-3.033.775.807-2.95-.194-.303A8.12 8.12 0 0 1 3.849 12c0-4.494 3.659-8.153 8.155-8.153S20.15 7.506 20.15 12c0 4.493-3.659 8.153-8.146 8.153z" fill="currentColor"/>
+        </svg>
+      </span>
+      <div>
+        <p class="ikkasa-otp__title">Login with WhatsApp OTP</p>
+        <p class="ikkasa-otp__subtitle">Get a verification code instantly on your WhatsApp</p>
+      </div>
+    </div>
+
+    {%- comment -%} Step 1 — Phone input {%- endcomment -%}
+    <div id="ikkasa-step-phone" class="ikkasa-otp__step">
+      <div class="ikkasa-otp__phone-row">
+        <span class="ikkasa-otp__prefix">
+          <svg width="18" height="14" viewBox="0 0 18 14" xmlns="http://www.w3.org/2000/svg">
+            <rect width="18" height="14" fill="#FF9933"/>
+            <rect y="4.67" width="18" height="4.66" fill="#fff"/>
+            <rect y="9.33" width="18" height="4.67" fill="#138808"/>
+            <circle cx="9" cy="7" r="1.5" fill="none" stroke="#000080" stroke-width="0.4"/>
+          </svg>
+          <span>+91</span>
+        </span>
+        <input
+          id="ikkasa-phone"
+          type="tel"
+          class="ikkasa-otp__input field__input"
+          placeholder="10-digit mobile number"
+          maxlength="10"
+          inputmode="numeric"
+          autocomplete="tel-national"
+          aria-label="Mobile number"
+          aria-required="true"
+        />
+      </div>
+      <button id="ikkasa-send-btn" class="ikkasa-otp__btn ikkasa-otp__btn--wa button button--full-width" type="button">
+        <span class="ikkasa-otp__btn-text">Send OTP on WhatsApp</span>
+        <span class="ikkasa-otp__spinner" style="display:none" aria-hidden="true"></span>
+      </button>
+      <p id="ikkasa-phone-error" class="ikkasa-otp__error" role="alert" aria-live="polite"></p>
+    </div>
+
+    {%- comment -%} Step 2 — OTP entry {%- endcomment -%}
+    <div id="ikkasa-step-otp" class="ikkasa-otp__step" style="display:none" aria-hidden="true">
+      <p id="ikkasa-otp-sent" class="ikkasa-otp__sent-msg"></p>
+
+      <div class="ikkasa-otp__digits" id="ikkasa-otp-digits" role="group" aria-label="Enter 6-digit OTP">
+        <input class="ikkasa-otp__digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="one-time-code" aria-label="Digit 1" />
+        <input class="ikkasa-otp__digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" aria-label="Digit 2" />
+        <input class="ikkasa-otp__digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" aria-label="Digit 3" />
+        <input class="ikkasa-otp__digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" aria-label="Digit 4" />
+        <input class="ikkasa-otp__digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" aria-label="Digit 5" />
+        <input class="ikkasa-otp__digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" aria-label="Digit 6" />
+      </div>
+
+      <button id="ikkasa-verify-btn" class="ikkasa-otp__btn ikkasa-otp__btn--verify button button--full-width" type="button">
+        <span class="ikkasa-otp__btn-text">Verify &amp; Login</span>
+        <span class="ikkasa-otp__spinner" style="display:none" aria-hidden="true"></span>
+      </button>
+
+      <p id="ikkasa-otp-error" class="ikkasa-otp__error" role="alert" aria-live="polite"></p>
+
+      <div class="ikkasa-otp__resend">
+        <span id="ikkasa-timer"></span>
+        <button id="ikkasa-resend-btn" type="button" class="ikkasa-otp__link-btn" style="display:none">Resend OTP</button>
+        <span class="ikkasa-otp__dot" aria-hidden="true">·</span>
+        <button type="button" class="ikkasa-otp__link-btn" onclick="IkkasaOtp.reset()">Change number</button>
+      </div>
+    </div>
+
+    {%- comment -%} Step 3 — Loading while form submits {%- endcomment -%}
+    <div id="ikkasa-step-loading" class="ikkasa-otp__step ikkasa-otp__loading-state" style="display:none" aria-hidden="true" aria-live="polite">
+      <span class="ikkasa-otp__spinner ikkasa-otp__spinner--lg" aria-hidden="true"></span>
+      <span id="ikkasa-loading-text">Logging you in…</span>
+    </div>
+
+  </div>
+
+  {%- comment -%}
+    Hidden Shopify login form.
+    After OTP is verified, we fill email + tempPassword and auto-submit this.
+    Shopify then sets the session cookie exactly as it would for a normal login.
+  {%- endcomment -%}
+  <form id="ikkasa-auto-login-form" method="post" action="/account/login" style="display:none" novalidate>
+    <input type="hidden" name="form_type"          value="customer_login" />
+    <input type="hidden" name="utf8"               value="✓" />
+    <input type="hidden" id="ikkasa-f-email"       name="customer[email]"    value="" />
+    <input type="hidden" id="ikkasa-f-password"    name="customer[password]" value="" />
+    <input type="hidden" id="ikkasa-f-return"      name="return_to"          value="" />
+  </form>
+
+</div>
+
+
+{%- comment -%} ── Styles (scoped to .ikkasa-otp__* — never bleeds into Dawn) ── {%- endcomment -%}
+<style>
+/* Card */
+.ikkasa-otp__card {
+  border: 1.5px solid rgba(0,0,0,.1);
+  border-radius: var(--inputs-radius, 4px);
+  padding: 24px 22px 20px;
+  margin-bottom: 30px;
+  background: rgba(0,0,0,.015);
+}
+
+/* Header */
+.ikkasa-otp__header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 20px;
+}
+.ikkasa-otp__icon {
+  flex-shrink: 0;
+  width: 42px; height: 42px;
+  background: #25d366;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+.ikkasa-otp__title {
+  font-size: calc(var(--font-body-scale) * 1.6rem);
+  font-weight: 600;
+  margin: 0 0 3px;
+  color: rgb(var(--color-foreground));
+}
+.ikkasa-otp__subtitle {
+  font-size: calc(var(--font-body-scale) * 1.3rem);
+  color: rgba(var(--color-foreground), .6);
+  margin: 0;
+}
+
+/* Phone row */
+.ikkasa-otp__phone-row {
+  display: flex;
+  gap: 0;
+  margin-bottom: 14px;
+  border: 1px solid rgba(var(--color-foreground), .2);
+  border-radius: var(--inputs-radius, 4px);
+  overflow: hidden;
+  background: rgb(var(--color-background));
+  transition: border-color .15s;
+}
+.ikkasa-otp__phone-row:focus-within {
+  border-color: rgba(var(--color-foreground), .6);
+  box-shadow: 0 0 0 1px rgba(var(--color-foreground), .2);
+}
+.ikkasa-otp__prefix {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 12px;
+  background: rgba(var(--color-foreground), .04);
+  border-right: 1px solid rgba(var(--color-foreground), .15);
+  font-size: calc(var(--font-body-scale) * 1.4rem);
+  color: rgb(var(--color-foreground));
+  white-space: nowrap;
+  user-select: none;
+}
+.ikkasa-otp__input {
+  flex: 1;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 12px 14px !important;
+  font-size: calc(var(--font-body-scale) * 1.6rem) !important;
+  background: transparent !important;
+  min-width: 0;
+}
+
+/* Buttons */
+.ikkasa-otp__btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  padding: 14px !important;
+  border-radius: var(--inputs-radius, 4px) !important;
+  font-size: calc(var(--font-body-scale) * 1.5rem) !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: opacity .2s, transform .1s !important;
+  border: none !important;
+}
+.ikkasa-otp__btn:active { transform: scale(.99) !important; }
+.ikkasa-otp__btn:disabled { opacity: .6 !important; cursor: not-allowed !important; transform: none !important; }
+.ikkasa-otp__btn--wa  { background: #25d366 !important; color: #fff !important; }
+.ikkasa-otp__btn--wa:hover:not(:disabled) { background: #1ebe5a !important; }
+.ikkasa-otp__btn--verify { background: rgb(var(--color-button)) !important; color: rgb(var(--color-button-text)) !important; }
+
+/* OTP digit boxes */
+.ikkasa-otp__digits {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.ikkasa-otp__digit {
+  width: 46px; height: 54px;
+  border: 1.5px solid rgba(var(--color-foreground), .25);
+  border-radius: var(--inputs-radius, 4px);
+  text-align: center;
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: rgb(var(--color-foreground));
+  background: rgb(var(--color-background));
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  caret-color: transparent;
+  -webkit-appearance: none;
+}
+.ikkasa-otp__digit:focus {
+  border-color: rgba(var(--color-foreground), .8);
+  box-shadow: 0 0 0 2px rgba(var(--color-foreground), .12);
+}
+.ikkasa-otp__digit.filled {
+  border-color: rgba(var(--color-foreground), .5);
+  background: rgba(var(--color-foreground), .03);
+}
+
+/* Messages */
+.ikkasa-otp__sent-msg {
+  font-size: calc(var(--font-body-scale) * 1.3rem);
+  color: #1e7e34;
+  margin: 0 0 14px;
+}
+.ikkasa-otp__error {
+  font-size: calc(var(--font-body-scale) * 1.3rem);
+  color: rgb(var(--color-error, 191 33 46));
+  margin: 8px 0 0;
+  min-height: 16px;
+  line-height: 1.4;
+}
+
+/* Resend row */
+.ikkasa-otp__resend {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: calc(var(--font-body-scale) * 1.3rem);
+  color: rgba(var(--color-foreground), .6);
+}
+.ikkasa-otp__link-btn {
+  background: none; border: none; padding: 0;
+  color: rgb(var(--color-foreground));
+  font-size: calc(var(--font-body-scale) * 1.3rem);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ikkasa-otp__dot { color: rgba(var(--color-foreground), .3); }
+
+/* Loading */
+.ikkasa-otp__loading-state {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 0;
+  font-size: calc(var(--font-body-scale) * 1.5rem);
+  color: rgba(var(--color-foreground), .7);
+}
+@keyframes ikkasa-spin { to { transform: rotate(360deg); } }
+.ikkasa-otp__spinner {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border: 2px solid rgba(var(--color-foreground), .15);
+  border-top-color: rgb(var(--color-foreground));
+  border-radius: 50%;
+  animation: ikkasa-spin .65s linear infinite;
+  flex-shrink: 0;
+}
+.ikkasa-otp__spinner--lg { width: 22px; height: 22px; }
+
+/* Shake animation for wrong OTP */
+@keyframes ikkasa-shake {
+  0%,100%{ transform:translateX(0) }
+  20%{ transform:translateX(-7px) }
+  40%{ transform:translateX(7px) }
+  60%{ transform:translateX(-4px) }
+  80%{ transform:translateX(4px) }
+}
+.ikkasa-otp__shake { animation: ikkasa-shake .4s ease-in-out; }
+
+/* Mobile */
+@media (max-width: 480px) {
+  .ikkasa-otp__card { padding: 18px 14px; }
+  .ikkasa-otp__digit { width: 40px; height: 48px; font-size: 1.9rem; }
+  .ikkasa-otp__digits { gap: 5px; }
+}
+</style>
+
+
+{%- comment -%} ── JavaScript (IIFE — zero global pollution) ── {%- endcomment -%}
+<script>
+(function () {
+  'use strict';
+
+  const ROOT    = document.getElementById('ikkasa-otp-root');
+  const API_URL = ROOT.dataset.apiUrl;
+  const API_KEY = ROOT.dataset.apiKey;
+
+  /* ── DOM refs ── */
+  const $  = (id) => document.getElementById(id);
+  const stepPhone   = $('ikkasa-step-phone');
+  const stepOtp     = $('ikkasa-step-otp');
+  const stepLoading = $('ikkasa-step-loading');
+
+  const phoneInput  = $('ikkasa-phone');
+  const sendBtn     = $('ikkasa-send-btn');
+  const phoneErr    = $('ikkasa-phone-error');
+
+  const digits      = Array.from(document.querySelectorAll('.ikkasa-otp__digit'));
+  const verifyBtn   = $('ikkasa-verify-btn');
+  const otpSentMsg  = $('ikkasa-otp-sent');
+  const otpErr      = $('ikkasa-otp-error');
+  const timerEl     = $('ikkasa-timer');
+  const resendBtn   = $('ikkasa-resend-btn');
+  const loadingTxt  = $('ikkasa-loading-text');
+
+  const loginForm   = $('ikkasa-auto-login-form');
+  const fEmail      = $('ikkasa-f-email');
+  const fPass       = $('ikkasa-f-password');
+  const fReturn     = $('ikkasa-f-return');
+
+  let phone = '';
+  let timerID = null;
+
+  /* ── Step control ── */
+  function show(step) {
+    [stepPhone, stepOtp, stepLoading].forEach(s => {
+      s.style.display = 'none';
+      s.setAttribute('aria-hidden', 'true');
+    });
+    step.style.display = '';
+    step.setAttribute('aria-hidden', 'false');
+  }
+
+  /* ── Button helpers ── */
+  function setBusy(btn, busy, label) {
+    btn.disabled = busy;
+    btn.querySelector('.ikkasa-otp__btn-text').textContent = label;
+    btn.querySelector('.ikkasa-otp__spinner').style.display = busy ? 'inline-block' : 'none';
+  }
+
+  /* ── Errors ── */
+  function setErr(el, msg) { el.textContent = msg; }
+  function clearErr(el)    { el.textContent = ''; }
+
+  /* ── OTP value ── */
+  function otpVal() { return digits.map(d => d.value).join(''); }
+
+  /* ── Digit box behaviour ── */
+  digits.forEach((d, i) => {
+    d.addEventListener('input', e => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(-1);
+      e.target.classList.toggle('filled', !!e.target.value);
+      if (e.target.value && i < 5) digits[i + 1].focus();
+      if (otpVal().length === 6) setTimeout(verify, 80);
+    });
+    d.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !d.value && i > 0) {
+        digits[i - 1].value = '';
+        digits[i - 1].classList.remove('filled');
+        digits[i - 1].focus();
+      }
+      if (e.key === 'ArrowLeft'  && i > 0) digits[i - 1].focus();
+      if (e.key === 'ArrowRight' && i < 5) digits[i + 1].focus();
+      if (e.key === 'Enter') verify();
+    });
+    d.addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+      if (text.length >= 6) {
+        digits.forEach((x, idx) => {
+          x.value = text[idx] || '';
+          x.classList.toggle('filled', !!x.value);
+        });
+        digits[5].focus();
+        setTimeout(verify, 80);
+      }
+    });
+  });
+
+  /* WebOTP API — auto-fill from Android SMS/WhatsApp notification */
+  if ('OTPCredential' in window) {
+    const ac = new AbortController();
+    navigator.credentials.get({ otp: { transport: ['sms'] }, signal: ac.signal })
+      .then(cred => {
+        if (!cred?.code) return;
+        const code = cred.code.replace(/\D/g, '');
+        digits.forEach((x, i) => { x.value = code[i] || ''; x.classList.toggle('filled', !!x.value); });
+        verify();
+      }).catch(() => {});
+  }
+
+  /* ── Resend countdown ── */
+  function startTimer(sec) {
+    clearInterval(timerID);
+    resendBtn.style.display = 'none';
+    let s = sec;
+    tick();
+    timerID = setInterval(tick, 1000);
+    function tick() {
+      if (s > 0) { timerEl.textContent = `Resend in ${s}s`; s--; }
+      else {
+        clearInterval(timerID);
+        timerEl.textContent = '';
+        resendBtn.style.display = 'inline';
+      }
+    }
+  }
+
+  /* ── Send OTP ── */
+  async function send() {
+    clearErr(phoneErr);
+    const val = phoneInput.value.trim().replace(/\D/g, '');
+    if (!/^\d{10}$/.test(val) || !/^[6-9]/.test(val)) {
+      setErr(phoneErr, 'Please enter a valid 10-digit Indian mobile number');
+      phoneInput.focus();
+      return;
+    }
+    phone = val;
+    setBusy(sendBtn, true, 'Sending…');
+
+    try {
+      const res  = await fetch(`${API_URL}/api/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        const masked = phone.slice(0, 2) + 'XXXXXX' + phone.slice(-2);
+        otpSentMsg.textContent = `✓ OTP sent to WhatsApp  (+91 ${masked})`;
+        show(stepOtp);
+        digits[0].focus();
+        startTimer(30);
+      } else {
+        setErr(phoneErr, data.error || 'Could not send OTP. Please try again.');
+        setBusy(sendBtn, false, 'Send OTP on WhatsApp');
+      }
+    } catch (_) {
+      setErr(phoneErr, 'Connection error. Please check your internet and try again.');
+      setBusy(sendBtn, false, 'Send OTP on WhatsApp');
+    }
+  }
+
+  /* ── Verify OTP ── */
+  async function verify() {
+    clearErr(otpErr);
+    const otp = otpVal();
+    if (otp.length !== 6) { setErr(otpErr, 'Please enter all 6 digits'); return; }
+
+    setBusy(verifyBtn, true, 'Verifying…');
+    digits.forEach(d => d.disabled = true);
+
+    try {
+      const res  = await fetch(`${API_URL}/api/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+        body: JSON.stringify({ phone, otp }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        clearInterval(timerID);
+        loadingTxt.textContent = 'Logging you in…';
+        show(stepLoading);
+
+        const returnTo = new URLSearchParams(window.location.search).get('return_to') || '/account';
+        fEmail.value   = data.email;
+        fPass.value    = data.tempPassword;
+        fReturn.value  = returnTo;
+
+        setTimeout(() => loginForm.submit(), 350);
+
+      } else if (data.code === 'EXISTING_EMAIL_ACCOUNT') {
+        setErr(otpErr,
+          'This number is linked to an account with email. Please use your email to log in.' +
+          (data.hint ? `  (${data.hint})` : ''));
+        setBusy(verifyBtn, false, 'Verify & Login');
+        digits.forEach(d => d.disabled = false);
+
+      } else if (data.code === 'MAX_ATTEMPTS') {
+        setErr(otpErr, 'Too many wrong attempts. Please request a new OTP.');
+        setTimeout(() => reset(), 2500);
+
+      } else {
+        setErr(otpErr, data.error || 'Invalid OTP. Please try again.');
+        setBusy(verifyBtn, false, 'Verify & Login');
+        digits.forEach(d => d.disabled = false);
+
+        /* Shake animation */
+        const box = document.getElementById('ikkasa-otp-digits');
+        box.classList.remove('ikkasa-otp__shake');
+        void box.offsetWidth;
+        box.classList.add('ikkasa-otp__shake');
+      }
+    } catch (_) {
+      setErr(otpErr, 'Connection error. Please try again.');
+      setBusy(verifyBtn, false, 'Verify & Login');
+      digits.forEach(d => d.disabled = false);
+    }
+  }
+
+  /* ── Reset ── */
+  function reset() {
+    clearInterval(timerID);
+    phone = '';
+    clearErr(phoneErr);
+    clearErr(otpErr);
+    digits.forEach(d => { d.value = ''; d.classList.remove('filled'); d.disabled = false; });
+    setBusy(sendBtn,   false, 'Send OTP on WhatsApp');
+    setBusy(verifyBtn, false, 'Verify & Login');
+    show(stepPhone);
+    phoneInput.focus();
+  }
+
+  /* ── Events ── */
+  sendBtn.addEventListener('click', send);
+  verifyBtn.addEventListener('click', verify);
+  resendBtn.addEventListener('click', () => {
+    digits.forEach(d => { d.value = ''; d.classList.remove('filled'); d.disabled = false; });
+    clearErr(otpErr);
+    setBusy(verifyBtn, false, 'Verify & Login');
+    send();
+  });
+  phoneInput.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+  phoneInput.addEventListener('input', () => {
+    phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 10);
+  });
+
+  /* ── Public API ── */
+  window.IkkasaOtp = { reset, send, verify };
+})();
+</script>
