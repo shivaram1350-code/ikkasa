@@ -1,0 +1,190 @@
+{% comment %}
+  Collection grid with absolute-position "Add to cart" buttons
+{% endcomment %}
+
+<style>
+  .vc-product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+  }
+
+  .vc-product-card {
+    position: relative;
+  }
+
+  .vc-product-card__media img {
+    width: 100%;
+    display: block;
+  }
+
+  .vc-quick-add-form {
+    margin: 0;
+  }
+
+  .vc-add-to-cart {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 5;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,0.12);
+
+    background: #fff;
+    color: #111;
+    font-weight: 600;
+    cursor: pointer;
+
+    box-shadow: 0 10px 25px rgba(0,0,0,0.14);
+    transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+  }
+
+  .vc-add-to-cart:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.18);
+  }
+
+  .vc-add-to-cart:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .vc-add-to-cart {
+      opacity: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+    }
+    .vc-product-card:hover .vc-add-to-cart {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+  }
+
+  .vc-product-card__meta {
+    padding: 10px 0 58px; /* bottom space for button */
+  }
+</style>
+
+{% if section.settings.collection != blank %}
+  {% assign vc_collection = collections[section.settings.collection] %}
+  {% if vc_collection and vc_collection.products_count > 0 %}
+    <div class="vc-product-grid">
+      {%- for product in vc_collection.products limit: section.settings.products_to_show -%}
+        {%- assign form_id = 'quick-add-' | append: product.id -%}
+
+        <div class="vc-product-card" data-product-card>
+          <a class="vc-product-card__media" href="{{ product.url }}">
+            {% if product.featured_image %}
+              <img
+                src="{{ product.featured_image | image_url: width: 800 }}"
+                alt="{{ product.featured_image.alt | escape }}"
+                loading="lazy"
+              >
+            {% endif %}
+          </a>
+
+          <div class="vc-product-card__meta">
+            <a class="vc-product-card__title" href="{{ product.url }}">{{ product.title }}</a>
+            <div class="vc-product-card__price">{{ product.price | money }}</div>
+          </div>
+
+          {%- form 'product', product, id: form_id, class: 'vc-quick-add-form', novalidate: 'novalidate' -%}
+            <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+            <button
+              type="submit"
+              class="vc-add-to-cart"
+              {% unless product.available %}disabled aria-disabled="true"{% endunless %}
+            >
+              {% if product.available %}Add to cart{% else %}Sold out{% endif %}
+            </button>
+          {%- endform -%}
+        </div>
+      {%- endfor -%}
+    </div>
+  {% endif %}
+{% else %}
+  <p>Select a collection in the section settings.</p>
+{% endif %}
+
+<script>
+  (function () {
+    function setButtonState(btn, loading, text) {
+      if (!btn) return;
+      btn.disabled = loading || btn.getAttribute("data-disabled") === "true";
+      btn.setAttribute("aria-busy", loading ? "true" : "false");
+      if (text) btn.textContent = text;
+    }
+
+    async function addToCart(form) {
+      const btn = form.querySelector('button[type="submit"]');
+      const originalText = btn ? btn.textContent : "Add to cart";
+
+      try {
+        setButtonState(btn, true, "Adding…");
+
+        const res = await fetch("/cart/add.js", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+          },
+          body: new URLSearchParams(new FormData(form)).toString(),
+        });
+
+        if (!res.ok) throw new Error("Add to cart failed");
+        await res.json();
+
+        setButtonState(btn, false, "Added");
+        setTimeout(() => setButtonState(btn, false, originalText), 900);
+      } catch (e) {
+        setButtonState(btn, false, "Error");
+        setTimeout(() => setButtonState(btn, false, originalText), 1200);
+        console.error(e);
+      }
+    }
+
+    document.addEventListener("submit", function (e) {
+      const form = e.target;
+      if (!form.classList.contains("vc-quick-add-form")) return;
+      e.preventDefault();
+      addToCart(form);
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Add-to-cart overlay grid",
+  "settings": [
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection"
+    },
+    {
+      "type": "range",
+      "id": "products_to_show",
+      "label": "Products to show",
+      "min": 1,
+      "max": 24,
+      "step": 1,
+      "default": 8
+    }
+  ],
+  "presets": [
+    {
+      "name": "Add-to-cart overlay grid"
+    }
+  ]
+}
+{% endschema %}
