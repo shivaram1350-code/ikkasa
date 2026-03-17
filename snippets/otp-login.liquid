@@ -31,8 +31,8 @@
         </svg>
       </span>
       <div>
-        <p class="ikkasa-otp__title">Login with WhatsApp OTP</p>
-        <p class="ikkasa-otp__subtitle">Get a verification code instantly on your WhatsApp</p>
+        <p class="ikkasa-otp__title">Login with OTP</p>
+        <p class="ikkasa-otp__subtitle">Get a verification code instantly on your phone via SMS</p>
       </div>
     </div>
 
@@ -61,7 +61,7 @@
         />
       </div>
       <button id="ikkasa-send-btn" class="ikkasa-otp__btn ikkasa-otp__btn--wa button button--full-width" type="button">
-        <span class="ikkasa-otp__btn-text">Send OTP on WhatsApp</span>
+        <span class="ikkasa-otp__btn-text">Send OTP via SMS</span>
         <span class="ikkasa-otp__spinner" style="display:none" aria-hidden="true"></span>
       </button>
       <p id="ikkasa-phone-error" class="ikkasa-otp__error" role="alert" aria-live="polite"></p>
@@ -459,7 +459,7 @@
 
       if (data.success) {
         const masked = phone.slice(0, 2) + 'XXXXXX' + phone.slice(-2);
-        otpSentMsg.textContent = `✓ OTP sent to WhatsApp  (+91 ${masked})`;
+        otpSentMsg.textContent = `✓ OTP sent via SMS to +91 ${masked}`;
         show(stepOtp);
         digits[0].focus();
         startTimer(30);
